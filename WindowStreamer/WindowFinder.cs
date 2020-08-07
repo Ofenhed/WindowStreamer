@@ -1,24 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using System.Runtime.InteropServices;
-using System.Threading;
-using System.Linq.Expressions;
-using System.Reflection;
-using System.Web.Http;
-using System.Net.Http;
-using System.Net;
-using System.Drawing.Text;
-using System.Threading.Tasks.Dataflow;
-using System.IO;
 using System.Drawing.Imaging;
-using System.Xml;
+using System.IO;
+using System.Net;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks.Dataflow;
+using System.Web.Http;
+using System.Windows.Forms;
 
 namespace WindowStreamer
 {
@@ -45,12 +35,6 @@ namespace WindowStreamer
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
-
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-
-        [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "SetWindowsHookEx", SetLastError = true)]
-        static extern IntPtr SetWindowsHookEx(int idHook, Delegate lpfn, IntPtr hMod, uint dwThreadId);
 
         [DllImport("user32.dll", SetLastError = true)]
         internal static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
@@ -119,7 +103,8 @@ namespace WindowStreamer
                         response.StatusCode = 200;
                         new Thread(delegate () { streamCallback(response.OutputStream); }) { Priority = ThreadPriority.BelowNormal }.Start();
                     }
-                } finally
+                }
+                finally
                 {
                     if (host.IsListening)
                     {
@@ -389,7 +374,7 @@ namespace WindowStreamer
 
         private void imageQuality_ValueChanged(object sender, EventArgs e)
         {
-            var parameter = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 
+            var parameter = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality,
                 (long)((NumericUpDown)sender).Value);
             encoderParameters.Param[0] = parameter;
         }
