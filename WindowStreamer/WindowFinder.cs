@@ -158,6 +158,7 @@ namespace WindowStreamer
                     using (MemoryStream ms = new MemoryStream())
                     {
                         image.Save(ms, imageCodecInfo, encoderParameters);
+                        image.Dispose();
                         return ms.ToArray();
                     }
                 }, true));
