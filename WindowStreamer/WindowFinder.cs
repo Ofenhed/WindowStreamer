@@ -169,21 +169,50 @@ namespace WindowStreamer
                 return received.Value;
             }
 
+            class BroadcastObserver<T> : System.IObserver<T>
+            {
+                private Semaphore onReadySem;
+                private Action<T> onDataAction;
+
+                public BroadcastObserver(Semaphore ready, Action<T> onData)
+                {
+                    onReadySem = ready;
+                    onDataAction = onData;
+                }
+
+                public void OnCompleted()
+                {
+                    onReadySem.Release();
+                }
+
+                public void OnError(Exception error)
+                {
+                    onReadySem.Release();
+                }
+
+                public void OnNext(T value)
+                {
+                    onDataAction(value);
+                }
+            }
+
             private void streamCallback(Stream stream)
             {
-                try
+                Semaphore semaphore = new Semaphore(0, 1);
+                Action<Lazy<byte[]>> handler = imageData =>
                 {
-                    while (!die)
-                    {
-                        var imageData = getCurrentImage();
-
-                        writeHeader(stream, imageData.Length);
-                        stream.Write(imageData, 0, imageData.Length);
+                    try { 
+                        var value = imageData.Value;
+                        writeHeader(stream, value.Length);
+                        stream.Write(value, 0, value.Length);
                         writeFooter(stream);
                         stream.Flush();
                     }
-                }
-                catch (HttpListenerException) { }
+                    catch (HttpListenerException) { }
+                };
+                var unsubscriber = currentImageEncoded.AsObservable().Subscribe(new BroadcastObserver<Lazy<byte[]>>(semaphore, handler));
+                semaphore.WaitOne();
+                unsubscriber.Dispose();
             }
 
         }
