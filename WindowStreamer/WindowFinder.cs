@@ -227,6 +227,7 @@ namespace WindowStreamer
             var parameter = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)imageQuality.Value);
             encoderParameters.Param[0] = parameter;
             this.MouseDown += new MouseEventHandler(this.formMouseDown);
+            gotWindowPanel.MouseDown += new MouseEventHandler(this.formMouseDown);
             this.MouseUp += new MouseEventHandler(this.formMouseUp);
             httpStreamer = new Streamer("SOME_BOUNDARY_WHICH_IS_NOT_PRESENT_IN_THE_FILE", 8181);
             httpStreamer.Start();
