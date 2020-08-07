@@ -11,6 +11,14 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Web.Http;
+using System.Net.Http;
+using System.Net;
+using System.Drawing.Text;
+using System.Threading.Tasks.Dataflow;
+using System.IO;
+using System.Drawing.Imaging;
+using System.Xml;
 
 namespace WindowStreamer
 {
@@ -61,30 +69,158 @@ namespace WindowStreamer
         private Thread workerThread;
         private Action resetFunction;
         private bool updateSize = false;
+        private decimal targetFps = 30;
+
+        class Streamer : ApiController
+        {
+            private String boundary;
+            private bool die;
+            private int port;
+
+            private BroadcastBlock<Lazy<byte[]>> currentImageEncoded;
+            private Thread serverThread;
+            private HttpListener host;
+
+            public Streamer(string boundary, int? port)
+            {
+                this.boundary = boundary;
+                this.port = port.Value;
+                currentImageEncoded = new BroadcastBlock<Lazy<byte[]>>(null);
+                serverThread = new Thread(delegate () { Run(); }) { Priority = ThreadPriority.Lowest };
+                die = false;
+            }
+
+
+            public void Run()
+            {
+                host = new HttpListener();
+                try
+                {
+                    host.Prefixes.Add($"http://*:{port}/");
+                    host.Start();
+                    while (!die)
+                    {
+                        var context = host.GetContext();
+                        var request = context.Request;
+                        var response = context.Response;
+                        response.Headers.Add($"Content-Type:multipart/x-mixed-replace; boundary={boundary}");
+                        response.StatusCode = 200;
+                        new Thread(delegate () { streamCallback(response.OutputStream); }) { Priority = ThreadPriority.BelowNormal }.Start();
+                    }
+                } finally
+                {
+                    if (host.IsListening)
+                    {
+                        host.Prefixes.Clear();
+                        host.Stop();
+                        host.Close();
+                    }
+                }
+            }
+
+            public void Start()
+            {
+                serverThread.Start();
+            }
+
+            public void Stop()
+            {
+                die = true;
+                if (serverThread.IsAlive)
+                {
+                    serverThread.Abort();
+                }
+                if (host != null)
+                {
+                    host.Abort();
+                }
+            }
+
+            private static void writeString(Stream stream, String text) // This should be replaced with the release of .NET 5
+            {
+                var encoded = Encoding.ASCII.GetBytes(text);
+                stream.Write(encoded, 0, encoded.Length);
+            }
+
+            private void writeHeader(Stream stream, int length)
+            {
+                writeString(stream, "--");
+                writeString(stream, boundary);
+                writeString(stream, $"\r\nContent-Type:image/jpeg\r\nContent-Length:{length}\r\n\r\n");
+            }
+
+            private void writeFooter(Stream stream)
+            {
+                writeString(stream, "\r\n");
+            }
+
+            public void SetCurrentImage(Bitmap image)
+            {
+                currentImageEncoded.SendAsync(new Lazy<byte[]>(() =>
+                {
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        image.Save(ms, ImageFormat.Jpeg);
+                        return ms.ToArray();
+                    }
+                }, true));
+            }
+
+            private byte[] getCurrentImage()
+            {
+                var received = currentImageEncoded.Receive();
+                return received.Value;
+            }
+
+            private void streamCallback(Stream stream)
+            {
+                try
+                {
+                    while (!die)
+                    {
+                        var imageData = getCurrentImage();
+
+                        writeHeader(stream, imageData.Length);
+                        stream.Write(imageData, 0, imageData.Length);
+                        writeFooter(stream);
+                        stream.Flush();
+                    }
+                }
+                catch (HttpListenerException) { }
+            }
+
+        }
 
         public WindowFinder()
         {
             InitializeComponent();
             this.MouseDown += new MouseEventHandler(this.formMouseDown);
             this.MouseUp += new MouseEventHandler(this.formMouseUp);
-            this.previewBox.MouseDown += new MouseEventHandler(this.formMouseDown);
             // this.MouseCaptureChanged += new Mous
 
         }
 
         protected override void OnClosed(EventArgs e)
         {
-            if (posBefore.HasValue)
+            if (resetFunction != null)
             {
-                var value = posBefore.Value;
-                MoveWindow(activeWindow, value.Left, value.Top, value.Right - value.Left, value.Bottom - value.Top, false);
+                resetFunction();
             }
             base.OnClosed(e);
         }
 
         public void formMouseDown(Object sender, MouseEventArgs e)
         {
-            WindowFinder.SetCapture(this.Handle);
+            if (!gotWindowPanel.Visible)
+                WindowFinder.SetCapture(this.Handle);
+        }
+
+        public bool doScreenshot(IntPtr hwnd, Bitmap output)
+        {
+            var memoryGraph = Graphics.FromImage(output);
+            var ptr = memoryGraph.GetHdc();
+            memoryGraph.ReleaseHdc();
+            return false;
         }
 
         public bool streamHwnd(IntPtr hwnd)
@@ -97,8 +233,11 @@ namespace WindowStreamer
                 workerThread = new Thread(delegate ()
                 {
                     posBefore = null;
+                    var streamer = new Streamer("SOME_BOUNDARY_WHICH_IS_NOT_PRESENT_IN_THE_FILE", 8181);
                     resetFunction = (delegate
                     {
+                        resetFunction = null;
+                        streamer.Stop();
                         workerThread.Abort();
                         if (posBefore.HasValue)
                         {
@@ -106,15 +245,11 @@ namespace WindowStreamer
                             MoveWindow(activeWindow, value.Left, value.Top, value.Right - value.Left, value.Bottom - value.Top, false);
                             if (!IsDisposed)
                             {
-                                previewBox.Image = null;
                                 gotWindowPanel.Visible = false;
                             }
                         }
                         resetFunction = null;
                     });
-                    Bitmap[] bmp = { new Bitmap(1, 1), new Bitmap(1, 1) };
-                    Graphics[] memoryGraph = { Graphics.FromImage(bmp[0]), Graphics.FromImage(bmp[1]) };
-                    var idx = 0;
 
                     Action doResetFunction = delegate
                     {
@@ -124,6 +259,9 @@ namespace WindowStreamer
                         }
                     };
 
+                    streamer.Start();
+                    var timer = new System.Diagnostics.Stopwatch();
+                    timer.Start();
                     while (true)
                     {
                         var rect = new RECT();
@@ -133,34 +271,30 @@ namespace WindowStreamer
                             doResetFunction();
                             break;
                         }
-                        if (bmp[idx].Width != rect.Right - rect.Left || bmp[idx].Height != rect.Bottom - rect.Top)
-                        {
-                            bmp[idx] = new Bitmap(rect.Right - rect.Left, rect.Bottom - rect.Top);
-                            memoryGraph[idx] = Graphics.FromImage(bmp[idx]);
-                        }
+                        Bitmap bmp = new Bitmap(rect.Right - rect.Left, rect.Bottom - rect.Top);
+                        Graphics memoryGraph = Graphics.FromImage(bmp);
+
                         var screen = SystemInformation.VirtualScreen;
                         sizeWidth.Maximum = screen.Width;
                         sizeHeight.Maximum = screen.Height;
                         if (posBefore == null)
                         {
                             posBefore = rect;
-                            sizeWidth.Value = bmp[idx].Width;
-                            sizeHeight.Value = bmp[idx].Height;
-                            updateSize = true;
                         }
                         if (updateSize)
                         {
                             updateSize = false;
-                            previewBox.Image = null;
                             MoveWindow(activeWindow, screen.Width, screen.Height, (int)sizeWidth.Value, (int)sizeHeight.Value, false);
                             continue;
                         }
-                        var ptr = memoryGraph[idx].GetHdc();
+                        var ptr = memoryGraph.GetHdc();
                         var printed = PrintWindow(activeWindow, ptr, 0);
-                        memoryGraph[idx].ReleaseHdc();
+                        memoryGraph.ReleaseHdc();
                         if (printed)
                         {
-                            var image = bmp[idx];
+                            var imgWidth = bmp.Width;
+                            var imgHeight = bmp.Height;
+                            streamer.SetCurrentImage(bmp);
                             try
                             {
                                 _ = Invoke((Action)(delegate
@@ -169,14 +303,12 @@ namespace WindowStreamer
                                     {
                                         return;
                                     }
-                                    sizeWidth.Value = image.Width;
-                                    sizeHeight.Value = image.Height;
-                                    gotWindowPanel.Visible = true;
-                                    if (previewBox.Image == null)
+                                    if (!updateSize)
                                     {
-                                        idx ^= 1;
-                                        previewBox.Image = image;
+                                        sizeWidth.Value = imgWidth;
+                                        sizeHeight.Value = imgHeight;
                                     }
+                                    gotWindowPanel.Visible = true;
                                 }));
                             }
                             catch (System.InvalidOperationException)
@@ -189,7 +321,13 @@ namespace WindowStreamer
                             doResetFunction();
                             break;
                         }
-                        Thread.Sleep(1000 / 30);
+                        timer.Stop();
+                        var sleepTarget = 1000 / targetFps - timer.ElapsedMilliseconds;
+                        if (sleepTarget > 0)
+                        {
+                            Thread.Sleep((int)sleepTarget);
+                        }
+                        timer.Restart();
                     }
                 });
                 workerThread.Priority = ThreadPriority.Lowest;
@@ -218,6 +356,17 @@ namespace WindowStreamer
         private void sizeHeight_ValueChanged(object sender, EventArgs e)
         {
             updateSize = true;
+        }
+
+        private void targetFpsEntry_ValueChanged(object sender, EventArgs e)
+        {
+            targetFps = ((NumericUpDown)sender).Value;
+        }
+
+        private void stopStreaming_Click(object sender, EventArgs e)
+        {
+            if (resetFunction != null)
+                resetFunction();
         }
     }
 }
