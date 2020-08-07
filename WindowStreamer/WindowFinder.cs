@@ -68,6 +68,7 @@ namespace WindowStreamer
         private RECT? posBefore;
         private Thread workerThread;
         private Action resetFunction;
+        private EncoderParameters encoderParameters;
         private bool updateSize = false;
         private decimal targetFps = 30;
 
@@ -80,9 +81,20 @@ namespace WindowStreamer
             private BroadcastBlock<Lazy<byte[]>> currentImageEncoded;
             private Thread serverThread;
             private HttpListener host;
+            private ImageCodecInfo imageCodecInfo;
 
             public Streamer(string boundary, int? port)
             {
+                ImageCodecInfo[] codecs = ImageCodecInfo.GetImageEncoders();
+                foreach (ImageCodecInfo codec in codecs)
+                {
+                    if (codec.FormatID == ImageFormat.Jpeg.Guid)
+                    {
+                        imageCodecInfo = codec;
+                        break;
+                    }
+                }
+
                 this.boundary = boundary;
                 this.port = port.Value;
                 currentImageEncoded = new BroadcastBlock<Lazy<byte[]>>(null);
@@ -154,13 +166,13 @@ namespace WindowStreamer
                 writeString(stream, "\r\n");
             }
 
-            public void SetCurrentImage(Bitmap image)
+            public void SetCurrentImage(Bitmap image, EncoderParameters encoderParameters)
             {
                 currentImageEncoded.SendAsync(new Lazy<byte[]>(() =>
                 {
                     using (MemoryStream ms = new MemoryStream())
                     {
-                        image.Save(ms, ImageFormat.Jpeg);
+                        image.Save(ms, imageCodecInfo, encoderParameters);
                         return ms.ToArray();
                     }
                 }, true));
@@ -191,17 +203,25 @@ namespace WindowStreamer
 
         }
 
+        private Streamer httpStreamer;
+
         public WindowFinder()
         {
             InitializeComponent();
+            encoderParameters = new EncoderParameters(1);
+            var parameter = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)imageQuality.Value);
+            encoderParameters.Param[0] = parameter;
             this.MouseDown += new MouseEventHandler(this.formMouseDown);
             this.MouseUp += new MouseEventHandler(this.formMouseUp);
+            httpStreamer = new Streamer("SOME_BOUNDARY_WHICH_IS_NOT_PRESENT_IN_THE_FILE", 8181);
+            httpStreamer.Start();
             // this.MouseCaptureChanged += new Mous
 
         }
 
         protected override void OnClosed(EventArgs e)
         {
+            httpStreamer.Stop();
             if (resetFunction != null)
             {
                 resetFunction();
@@ -233,11 +253,9 @@ namespace WindowStreamer
                 workerThread = new Thread(delegate ()
                 {
                     posBefore = null;
-                    var streamer = new Streamer("SOME_BOUNDARY_WHICH_IS_NOT_PRESENT_IN_THE_FILE", 8181);
                     resetFunction = (delegate
                     {
                         resetFunction = null;
-                        streamer.Stop();
                         workerThread.Abort();
                         if (posBefore.HasValue)
                         {
@@ -259,7 +277,6 @@ namespace WindowStreamer
                         }
                     };
 
-                    streamer.Start();
                     var timer = new System.Diagnostics.Stopwatch();
                     timer.Start();
                     while (true)
@@ -280,6 +297,7 @@ namespace WindowStreamer
                         if (posBefore == null)
                         {
                             posBefore = rect;
+                            MoveWindow(activeWindow, screen.Width, screen.Height, (int)sizeWidth.Value, (int)sizeHeight.Value, false);
                         }
                         if (updateSize)
                         {
@@ -294,7 +312,7 @@ namespace WindowStreamer
                         {
                             var imgWidth = bmp.Width;
                             var imgHeight = bmp.Height;
-                            streamer.SetCurrentImage(bmp);
+                            httpStreamer.SetCurrentImage(bmp, encoderParameters);
                             try
                             {
                                 _ = Invoke((Action)(delegate
@@ -367,6 +385,13 @@ namespace WindowStreamer
         {
             if (resetFunction != null)
                 resetFunction();
+        }
+
+        private void imageQuality_ValueChanged(object sender, EventArgs e)
+        {
+            var parameter = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 
+                (long)((NumericUpDown)sender).Value);
+            encoderParameters.Param[0] = parameter;
         }
     }
 }

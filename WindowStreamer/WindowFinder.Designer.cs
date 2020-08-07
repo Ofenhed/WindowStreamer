@@ -33,6 +33,7 @@ namespace WindowStreamer
     private void InitializeComponent()
         {
             this.gotWindowPanel = new System.Windows.Forms.Panel();
+            this.imageQuality = new System.Windows.Forms.NumericUpDown();
             this.stopStreaming = new System.Windows.Forms.Button();
             this.targetFpsEntry = new System.Windows.Forms.NumericUpDown();
             this.sizeHeight = new System.Windows.Forms.NumericUpDown();
@@ -41,6 +42,7 @@ namespace WindowStreamer
             this.label1 = new System.Windows.Forms.Label();
             this.portLabel = new System.Windows.Forms.Label();
             this.gotWindowPanel.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.imageQuality)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.targetFpsEntry)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.sizeHeight)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.sizeWidth)).BeginInit();
@@ -51,6 +53,7 @@ namespace WindowStreamer
             this.gotWindowPanel.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.gotWindowPanel.Controls.Add(this.imageQuality);
             this.gotWindowPanel.Controls.Add(this.stopStreaming);
             this.gotWindowPanel.Controls.Add(this.targetFpsEntry);
             this.gotWindowPanel.Controls.Add(this.sizeHeight);
@@ -60,13 +63,37 @@ namespace WindowStreamer
             this.gotWindowPanel.Controls.Add(this.portLabel);
             this.gotWindowPanel.Location = new System.Drawing.Point(12, 12);
             this.gotWindowPanel.Name = "gotWindowPanel";
-            this.gotWindowPanel.Size = new System.Drawing.Size(181, 73);
+            this.gotWindowPanel.Size = new System.Drawing.Size(205, 73);
             this.gotWindowPanel.TabIndex = 3;
             this.gotWindowPanel.Visible = false;
             // 
+            // imageQuality
+            // 
+            this.imageQuality.Increment = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
+            this.imageQuality.Location = new System.Drawing.Point(62, 43);
+            this.imageQuality.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.imageQuality.Name = "imageQuality";
+            this.imageQuality.Size = new System.Drawing.Size(59, 20);
+            this.imageQuality.TabIndex = 8;
+            this.imageQuality.Value = new decimal(new int[] {
+            60,
+            0,
+            0,
+            0});
+            this.imageQuality.ValueChanged += new System.EventHandler(this.imageQuality_ValueChanged);
+            // 
             // stopStreaming
             // 
-            this.stopStreaming.Location = new System.Drawing.Point(61, 42);
+            this.stopStreaming.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.stopStreaming.Location = new System.Drawing.Point(127, 47);
             this.stopStreaming.Name = "stopStreaming";
             this.stopStreaming.Size = new System.Drawing.Size(75, 23);
             this.stopStreaming.TabIndex = 7;
@@ -172,15 +199,15 @@ namespace WindowStreamer
             this.portLabel.AutoSize = true;
             this.portLabel.Location = new System.Drawing.Point(94, 0);
             this.portLabel.Name = "portLabel";
-            this.portLabel.Size = new System.Drawing.Size(35, 13);
+            this.portLabel.Size = new System.Drawing.Size(31, 13);
             this.portLabel.TabIndex = 2;
-            this.portLabel.Text = "label2";
+            this.portLabel.Text = "8181";
             // 
             // WindowFinder
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(205, 97);
+            this.ClientSize = new System.Drawing.Size(229, 97);
             this.Controls.Add(this.gotWindowPanel);
             this.MaximizeBox = false;
             this.Name = "WindowFinder";
@@ -188,6 +215,7 @@ namespace WindowStreamer
             this.TopMost = true;
             this.gotWindowPanel.ResumeLayout(false);
             this.gotWindowPanel.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.imageQuality)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.targetFpsEntry)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.sizeHeight)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.sizeWidth)).EndInit();
@@ -204,6 +232,7 @@ namespace WindowStreamer
         private NumericUpDown sizeHeight;
         private NumericUpDown targetFpsEntry;
         private Button stopStreaming;
+        private NumericUpDown imageQuality;
     }
 }
 
