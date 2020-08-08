@@ -44,19 +44,19 @@ namespace WindowStreamer
             this.flowLayoutPanel1 = new System.Windows.Forms.FlowLayoutPanel();
             this.label3 = new System.Windows.Forms.Label();
             this.label4 = new System.Windows.Forms.Label();
+            this.serverUrlLabel = new System.Windows.Forms.LinkLabel();
+            this.flowLayoutPanel2 = new System.Windows.Forms.FlowLayoutPanel();
             this.noWindowPanel = new System.Windows.Forms.TableLayoutPanel();
             this.visibleWindowLabel = new System.Windows.Forms.Label();
             this.hiddenWindowLabel = new System.Windows.Forms.Label();
-            this.serverUrlLabel = new System.Windows.Forms.LinkLabel();
-            this.flowLayoutPanel2 = new System.Windows.Forms.FlowLayoutPanel();
             ((System.ComponentModel.ISupportInitialize)(this.imageQuality)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.targetFpsEntry)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.sizeHeight)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.sizeWidth)).BeginInit();
             this.gotWindowPanel.SuspendLayout();
             this.flowLayoutPanel1.SuspendLayout();
-            this.noWindowPanel.SuspendLayout();
             this.flowLayoutPanel2.SuspendLayout();
+            this.noWindowPanel.SuspendLayout();
             this.SuspendLayout();
             // 
             // hideStreamedCheckbox
@@ -78,7 +78,7 @@ namespace WindowStreamer
             0,
             0,
             0});
-            this.imageQuality.Location = new System.Drawing.Point(89, 74);
+            this.imageQuality.Location = new System.Drawing.Point(72, 100);
             this.imageQuality.Minimum = new decimal(new int[] {
             1,
             0,
@@ -96,12 +96,12 @@ namespace WindowStreamer
             // 
             // stopStreaming
             // 
-            this.stopStreaming.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.stopStreaming.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.stopStreaming.AutoSize = true;
             this.stopStreaming.Location = new System.Drawing.Point(96, 3);
             this.stopStreaming.Name = "stopStreaming";
-            this.stopStreaming.Size = new System.Drawing.Size(75, 23);
-            this.stopStreaming.TabIndex = 7;
+            this.stopStreaming.Size = new System.Drawing.Size(39, 23);
+            this.stopStreaming.TabIndex = 10;
             this.stopStreaming.Text = "Stop";
             this.stopStreaming.UseVisualStyleBackColor = true;
             this.stopStreaming.Click += new System.EventHandler(this.stopStreaming_Click);
@@ -109,7 +109,7 @@ namespace WindowStreamer
             // targetFpsEntry
             // 
             this.targetFpsEntry.DecimalPlaces = 1;
-            this.targetFpsEntry.Location = new System.Drawing.Point(89, 48);
+            this.targetFpsEntry.Location = new System.Drawing.Point(72, 74);
             this.targetFpsEntry.Maximum = new decimal(new int[] {
             60,
             0,
@@ -137,7 +137,7 @@ namespace WindowStreamer
             0,
             0,
             0});
-            this.sizeHeight.Location = new System.Drawing.Point(73, 3);
+            this.sizeHeight.Location = new System.Drawing.Point(3, 29);
             this.sizeHeight.Maximum = new decimal(new int[] {
             1,
             0,
@@ -150,7 +150,7 @@ namespace WindowStreamer
             0});
             this.sizeHeight.Name = "sizeHeight";
             this.sizeHeight.Size = new System.Drawing.Size(64, 20);
-            this.sizeHeight.TabIndex = 5;
+            this.sizeHeight.TabIndex = 4;
             this.sizeHeight.Value = new decimal(new int[] {
             1,
             0,
@@ -164,7 +164,7 @@ namespace WindowStreamer
             this.label2.Location = new System.Drawing.Point(3, 13);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(27, 13);
-            this.label2.TabIndex = 4;
+            this.label2.TabIndex = 2;
             this.label2.Text = "Size";
             // 
             // sizeWidth
@@ -196,7 +196,7 @@ namespace WindowStreamer
             this.label1.Location = new System.Drawing.Point(3, 0);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(63, 13);
-            this.label1.TabIndex = 1;
+            this.label1.TabIndex = 0;
             this.label1.Text = "Server URL";
             // 
             // gotWindowPanel
@@ -223,7 +223,7 @@ namespace WindowStreamer
             this.gotWindowPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.gotWindowPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.gotWindowPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.gotWindowPanel.Size = new System.Drawing.Size(267, 117);
+            this.gotWindowPanel.Size = new System.Drawing.Size(213, 143);
             this.gotWindowPanel.TabIndex = 5;
             // 
             // flowLayoutPanel1
@@ -232,28 +232,50 @@ namespace WindowStreamer
             this.flowLayoutPanel1.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.flowLayoutPanel1.Controls.Add(this.sizeWidth);
             this.flowLayoutPanel1.Controls.Add(this.sizeHeight);
-            this.flowLayoutPanel1.Location = new System.Drawing.Point(89, 16);
+            this.flowLayoutPanel1.Location = new System.Drawing.Point(72, 16);
             this.flowLayoutPanel1.Name = "flowLayoutPanel1";
-            this.flowLayoutPanel1.Size = new System.Drawing.Size(140, 26);
+            this.flowLayoutPanel1.Size = new System.Drawing.Size(70, 52);
             this.flowLayoutPanel1.TabIndex = 5;
             // 
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(3, 45);
+            this.label3.Location = new System.Drawing.Point(3, 71);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(27, 13);
-            this.label3.TabIndex = 7;
+            this.label3.TabIndex = 5;
             this.label3.Text = "FPS";
             // 
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(3, 71);
+            this.label4.Location = new System.Drawing.Point(3, 97);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(39, 13);
-            this.label4.TabIndex = 9;
+            this.label4.TabIndex = 7;
             this.label4.Text = "Quality";
+            // 
+            // serverUrlLabel
+            // 
+            this.serverUrlLabel.AutoSize = true;
+            this.serverUrlLabel.Location = new System.Drawing.Point(72, 0);
+            this.serverUrlLabel.Name = "serverUrlLabel";
+            this.serverUrlLabel.Size = new System.Drawing.Size(16, 13);
+            this.serverUrlLabel.TabIndex = 1;
+            this.serverUrlLabel.TabStop = true;
+            this.serverUrlLabel.Text = "...";
+            this.serverUrlLabel.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.serverUrlLabel_LinkClicked);
+            // 
+            // flowLayoutPanel2
+            // 
+            this.flowLayoutPanel2.AutoSize = true;
+            this.flowLayoutPanel2.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.flowLayoutPanel2.Controls.Add(this.hideStreamedCheckbox);
+            this.flowLayoutPanel2.Controls.Add(this.stopStreaming);
+            this.flowLayoutPanel2.Location = new System.Drawing.Point(72, 126);
+            this.flowLayoutPanel2.Name = "flowLayoutPanel2";
+            this.flowLayoutPanel2.Size = new System.Drawing.Size(138, 14);
+            this.flowLayoutPanel2.TabIndex = 11;
             // 
             // noWindowPanel
             // 
@@ -291,33 +313,11 @@ namespace WindowStreamer
             this.hiddenWindowLabel.Text = "Hiding window";
             this.hiddenWindowLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
-            // serverUrlLabel
-            // 
-            this.serverUrlLabel.AutoSize = true;
-            this.serverUrlLabel.Location = new System.Drawing.Point(89, 0);
-            this.serverUrlLabel.Name = "serverUrlLabel";
-            this.serverUrlLabel.Size = new System.Drawing.Size(16, 13);
-            this.serverUrlLabel.TabIndex = 10;
-            this.serverUrlLabel.TabStop = true;
-            this.serverUrlLabel.Text = "...";
-            this.serverUrlLabel.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.serverUrlLabel_LinkClicked);
-            // 
-            // flowLayoutPanel2
-            // 
-            this.flowLayoutPanel2.AutoSize = true;
-            this.flowLayoutPanel2.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.flowLayoutPanel2.Controls.Add(this.hideStreamedCheckbox);
-            this.flowLayoutPanel2.Controls.Add(this.stopStreaming);
-            this.flowLayoutPanel2.Location = new System.Drawing.Point(89, 100);
-            this.flowLayoutPanel2.Name = "flowLayoutPanel2";
-            this.flowLayoutPanel2.Size = new System.Drawing.Size(174, 14);
-            this.flowLayoutPanel2.TabIndex = 11;
-            // 
             // WindowFinder
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(316, 204);
+            this.ClientSize = new System.Drawing.Size(260, 143);
             this.Controls.Add(this.noWindowPanel);
             this.Controls.Add(this.gotWindowPanel);
             this.MaximizeBox = false;
@@ -331,10 +331,10 @@ namespace WindowStreamer
             this.gotWindowPanel.ResumeLayout(false);
             this.gotWindowPanel.PerformLayout();
             this.flowLayoutPanel1.ResumeLayout(false);
-            this.noWindowPanel.ResumeLayout(false);
-            this.noWindowPanel.PerformLayout();
             this.flowLayoutPanel2.ResumeLayout(false);
             this.flowLayoutPanel2.PerformLayout();
+            this.noWindowPanel.ResumeLayout(false);
+            this.noWindowPanel.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
