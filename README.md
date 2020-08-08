@@ -15,7 +15,7 @@ Once this is done, open the program and draw from the empty program area to the 
 To connect to the stream from linux, the following command can be used for great performance:
 
 ```
-mpv --untimed http://streamserver:8181/ --profile=low-latency
+mpv --untimed http://streamserver:8181/stream/0/ --profile=low-latency
 ```
 
 ## Known issues
