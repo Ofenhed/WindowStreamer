@@ -40,7 +40,6 @@ namespace WindowStreamer
             this.label2 = new System.Windows.Forms.Label();
             this.sizeWidth = new System.Windows.Forms.NumericUpDown();
             this.label1 = new System.Windows.Forms.Label();
-            this.portLabel = new System.Windows.Forms.Label();
             this.gotWindowPanel = new System.Windows.Forms.TableLayoutPanel();
             this.flowLayoutPanel1 = new System.Windows.Forms.FlowLayoutPanel();
             this.label3 = new System.Windows.Forms.Label();
@@ -48,6 +47,8 @@ namespace WindowStreamer
             this.noWindowPanel = new System.Windows.Forms.TableLayoutPanel();
             this.visibleWindowLabel = new System.Windows.Forms.Label();
             this.hiddenWindowLabel = new System.Windows.Forms.Label();
+            this.serverUrlLabel = new System.Windows.Forms.LinkLabel();
+            this.flowLayoutPanel2 = new System.Windows.Forms.FlowLayoutPanel();
             ((System.ComponentModel.ISupportInitialize)(this.imageQuality)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.targetFpsEntry)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.sizeHeight)).BeginInit();
@@ -55,15 +56,16 @@ namespace WindowStreamer
             this.gotWindowPanel.SuspendLayout();
             this.flowLayoutPanel1.SuspendLayout();
             this.noWindowPanel.SuspendLayout();
+            this.flowLayoutPanel2.SuspendLayout();
             this.SuspendLayout();
             // 
             // hideStreamedCheckbox
             // 
             this.hideStreamedCheckbox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.hideStreamedCheckbox.AutoSize = true;
-            this.hideStreamedCheckbox.Location = new System.Drawing.Point(3, 100);
+            this.hideStreamedCheckbox.Location = new System.Drawing.Point(3, 3);
             this.hideStreamedCheckbox.Name = "hideStreamedCheckbox";
-            this.hideStreamedCheckbox.Size = new System.Drawing.Size(86, 17);
+            this.hideStreamedCheckbox.Size = new System.Drawing.Size(87, 17);
             this.hideStreamedCheckbox.TabIndex = 9;
             this.hideStreamedCheckbox.Text = "Hide window";
             this.hideStreamedCheckbox.UseVisualStyleBackColor = true;
@@ -76,7 +78,7 @@ namespace WindowStreamer
             0,
             0,
             0});
-            this.imageQuality.Location = new System.Drawing.Point(95, 74);
+            this.imageQuality.Location = new System.Drawing.Point(89, 74);
             this.imageQuality.Minimum = new decimal(new int[] {
             1,
             0,
@@ -95,7 +97,8 @@ namespace WindowStreamer
             // stopStreaming
             // 
             this.stopStreaming.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.stopStreaming.Location = new System.Drawing.Point(208, 117);
+            this.stopStreaming.AutoSize = true;
+            this.stopStreaming.Location = new System.Drawing.Point(96, 3);
             this.stopStreaming.Name = "stopStreaming";
             this.stopStreaming.Size = new System.Drawing.Size(75, 23);
             this.stopStreaming.TabIndex = 7;
@@ -106,7 +109,7 @@ namespace WindowStreamer
             // targetFpsEntry
             // 
             this.targetFpsEntry.DecimalPlaces = 1;
-            this.targetFpsEntry.Location = new System.Drawing.Point(95, 48);
+            this.targetFpsEntry.Location = new System.Drawing.Point(89, 48);
             this.targetFpsEntry.Maximum = new decimal(new int[] {
             60,
             0,
@@ -192,18 +195,9 @@ namespace WindowStreamer
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(3, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(85, 13);
+            this.label1.Size = new System.Drawing.Size(63, 13);
             this.label1.TabIndex = 1;
-            this.label1.Text = "Listening on port";
-            // 
-            // portLabel
-            // 
-            this.portLabel.AutoSize = true;
-            this.portLabel.Location = new System.Drawing.Point(95, 0);
-            this.portLabel.Name = "portLabel";
-            this.portLabel.Size = new System.Drawing.Size(31, 13);
-            this.portLabel.TabIndex = 2;
-            this.portLabel.Text = "8181";
+            this.label1.Text = "Server URL";
             // 
             // gotWindowPanel
             // 
@@ -212,8 +206,6 @@ namespace WindowStreamer
             this.gotWindowPanel.ColumnCount = 2;
             this.gotWindowPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 32.49212F));
             this.gotWindowPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 67.50788F));
-            this.gotWindowPanel.Controls.Add(this.stopStreaming, 1, 4);
-            this.gotWindowPanel.Controls.Add(this.portLabel, 1, 0);
             this.gotWindowPanel.Controls.Add(this.imageQuality, 1, 3);
             this.gotWindowPanel.Controls.Add(this.label1, 0, 0);
             this.gotWindowPanel.Controls.Add(this.label2, 0, 1);
@@ -221,7 +213,8 @@ namespace WindowStreamer
             this.gotWindowPanel.Controls.Add(this.flowLayoutPanel1, 1, 1);
             this.gotWindowPanel.Controls.Add(this.label3, 0, 2);
             this.gotWindowPanel.Controls.Add(this.label4, 0, 3);
-            this.gotWindowPanel.Controls.Add(this.hideStreamedCheckbox, 0, 4);
+            this.gotWindowPanel.Controls.Add(this.serverUrlLabel, 1, 0);
+            this.gotWindowPanel.Controls.Add(this.flowLayoutPanel2, 1, 4);
             this.gotWindowPanel.Location = new System.Drawing.Point(12, 12);
             this.gotWindowPanel.Name = "gotWindowPanel";
             this.gotWindowPanel.RowCount = 5;
@@ -230,7 +223,7 @@ namespace WindowStreamer
             this.gotWindowPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.gotWindowPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.gotWindowPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.gotWindowPanel.Size = new System.Drawing.Size(286, 143);
+            this.gotWindowPanel.Size = new System.Drawing.Size(267, 117);
             this.gotWindowPanel.TabIndex = 5;
             // 
             // flowLayoutPanel1
@@ -239,7 +232,7 @@ namespace WindowStreamer
             this.flowLayoutPanel1.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.flowLayoutPanel1.Controls.Add(this.sizeWidth);
             this.flowLayoutPanel1.Controls.Add(this.sizeHeight);
-            this.flowLayoutPanel1.Location = new System.Drawing.Point(95, 16);
+            this.flowLayoutPanel1.Location = new System.Drawing.Point(89, 16);
             this.flowLayoutPanel1.Name = "flowLayoutPanel1";
             this.flowLayoutPanel1.Size = new System.Drawing.Size(140, 26);
             this.flowLayoutPanel1.TabIndex = 5;
@@ -298,11 +291,33 @@ namespace WindowStreamer
             this.hiddenWindowLabel.Text = "Hiding window";
             this.hiddenWindowLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
+            // serverUrlLabel
+            // 
+            this.serverUrlLabel.AutoSize = true;
+            this.serverUrlLabel.Location = new System.Drawing.Point(89, 0);
+            this.serverUrlLabel.Name = "serverUrlLabel";
+            this.serverUrlLabel.Size = new System.Drawing.Size(16, 13);
+            this.serverUrlLabel.TabIndex = 10;
+            this.serverUrlLabel.TabStop = true;
+            this.serverUrlLabel.Text = "...";
+            this.serverUrlLabel.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.serverUrlLabel_LinkClicked);
+            // 
+            // flowLayoutPanel2
+            // 
+            this.flowLayoutPanel2.AutoSize = true;
+            this.flowLayoutPanel2.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.flowLayoutPanel2.Controls.Add(this.hideStreamedCheckbox);
+            this.flowLayoutPanel2.Controls.Add(this.stopStreaming);
+            this.flowLayoutPanel2.Location = new System.Drawing.Point(89, 100);
+            this.flowLayoutPanel2.Name = "flowLayoutPanel2";
+            this.flowLayoutPanel2.Size = new System.Drawing.Size(174, 14);
+            this.flowLayoutPanel2.TabIndex = 11;
+            // 
             // WindowFinder
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(316, 169);
+            this.ClientSize = new System.Drawing.Size(316, 204);
             this.Controls.Add(this.noWindowPanel);
             this.Controls.Add(this.gotWindowPanel);
             this.MaximizeBox = false;
@@ -318,6 +333,8 @@ namespace WindowStreamer
             this.flowLayoutPanel1.ResumeLayout(false);
             this.noWindowPanel.ResumeLayout(false);
             this.noWindowPanel.PerformLayout();
+            this.flowLayoutPanel2.ResumeLayout(false);
+            this.flowLayoutPanel2.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -325,7 +342,6 @@ namespace WindowStreamer
 
         #endregion
         private Label label1;
-        private Label portLabel;
         private Label label2;
         private NumericUpDown sizeWidth;
         private NumericUpDown sizeHeight;
@@ -340,6 +356,8 @@ namespace WindowStreamer
         private TableLayoutPanel noWindowPanel;
         private Label visibleWindowLabel;
         private Label hiddenWindowLabel;
+        private LinkLabel serverUrlLabel;
+        private FlowLayoutPanel flowLayoutPanel2;
     }
 }
 

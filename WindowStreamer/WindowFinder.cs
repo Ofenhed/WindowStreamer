@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -64,7 +65,7 @@ namespace WindowStreamer
             private int port;
 
             private BroadcastBlock<Lazy<byte[]>> currentImageEncoded;
-            private Thread serverThread;
+            private Thread serverThread = null;
             private HttpListener host;
             private ImageCodecInfo imageCodecInfo;
 
@@ -83,18 +84,38 @@ namespace WindowStreamer
                 this.boundary = boundary;
                 this.port = port.Value;
                 currentImageEncoded = new BroadcastBlock<Lazy<byte[]>>(null);
-                serverThread = new Thread(delegate () { Run(); }) { Priority = ThreadPriority.Lowest };
                 die = false;
             }
 
 
-            public void Run()
+            public void Run(Action<Uri> callback)
             {
                 host = new HttpListener();
                 try
                 {
-                    host.Prefixes.Add($"http://*:{port}/");
-                    host.Start();
+                    var stream_num = 0;
+                    while (true)
+                    {
+                        try
+                        {
+                            var url = new UriBuilder()
+                            {
+                                Scheme = "http",
+                                Host = "*",
+                                Port = port,
+                                Path = $"/stream/{stream_num}/"
+                            };
+                            host.Prefixes.Add(url.ToString());
+                            host.Start();
+                            url.Host = "127.0.0.1";
+                            callback(url.Uri);
+                            break;
+                        } catch
+                        {
+                            host.Prefixes.Clear();
+                            ++stream_num;
+                        }
+                    }
                     while (!die)
                     {
                         var context = host.GetContext();
@@ -102,7 +123,7 @@ namespace WindowStreamer
                         var response = context.Response;
                         response.Headers.Add($"Content-Type:multipart/x-mixed-replace; boundary={boundary}");
                         response.StatusCode = 200;
-                        new Thread(delegate () { streamCallback(response.OutputStream); }) { Priority = ThreadPriority.BelowNormal }.Start();
+                        new Thread(delegate () { streamCallback(response.OutputStream); }) { Priority = ThreadPriority.BelowNormal, IsBackground = true }.Start();
                     }
                 }
                 finally
@@ -116,14 +137,22 @@ namespace WindowStreamer
                 }
             }
 
-            public void Start()
+            public void Start(Action<Uri> callback)
             {
-                serverThread.Start();
+                if (serverThread == null)
+                {
+                    serverThread = new Thread(delegate () { Run(callback); }) { Priority = ThreadPriority.Lowest, IsBackground = true };
+                    serverThread.Start();
+                }
             }
 
             public void Stop()
             {
                 die = true;
+                if (serverThread == null)
+                {
+                    return;
+                }
                 if (serverThread.IsAlive)
                 {
                     serverThread.Abort();
@@ -203,7 +232,8 @@ namespace WindowStreamer
                 Semaphore semaphore = new Semaphore(0, 1);
                 Action<Lazy<byte[]>> handler = imageData =>
                 {
-                    try { 
+                    try
+                    {
                         var value = imageData.Value;
                         writeHeader(stream, value.Length);
                         stream.Write(value, 0, value.Length);
@@ -211,10 +241,15 @@ namespace WindowStreamer
                         stream.Flush();
                     }
                     catch (HttpListenerException) { }
+                    catch (ProtocolViolationException)
+                    {
+                        semaphore.Release();
+                    }
                 };
                 var unsubscriber = currentImageEncoded.AsObservable().Subscribe(new BroadcastObserver<Lazy<byte[]>>(semaphore, handler));
                 semaphore.WaitOne();
                 unsubscriber.Dispose();
+                stream.Close();
             }
 
         }
@@ -237,7 +272,13 @@ namespace WindowStreamer
             httpStreamer = new Streamer("SOME_BOUNDARY_WHICH_IS_NOT_PRESENT_IN_THE_FILE", 8181);
             noWindowPanel.Dock = DockStyle.Fill;
             gotWindowPanel.Dock = DockStyle.Fill;
-            httpStreamer.Start();
+            httpStreamer.Start((uri) =>
+            {
+                _ = Invoke((Action)delegate
+                {
+                    serverUrlLabel.Text = uri.ToString();
+                });
+            });
             // this.MouseCaptureChanged += new Mous
 
         }
@@ -339,14 +380,15 @@ namespace WindowStreamer
                             {
                                 windowPosition.X = posBefore.Value.Left;
                                 windowPosition.Y = posBefore.Value.Top;
-                            } else
+                            }
+                            else
                             {
                                 windowPosition.X = rect.Left;
                                 windowPosition.Y = rect.Top;
                             }
                         }
-                        sizeWidth.Maximum = screen.Width;
-                        sizeHeight.Maximum = screen.Height;
+                        sizeWidth.Maximum = screen.Width * 10;
+                        sizeHeight.Maximum = screen.Height * 10;
                         if (posBefore == null)
                         {
                             posBefore = rect;
@@ -375,7 +417,7 @@ namespace WindowStreamer
                             httpStreamer.SetCurrentImage(bmp, encoderParameters);
                             try
                             {
-                                _ = Invoke((Action)(delegate
+                                _ = Invoke((Action)delegate
                                 {
                                     if (IsDisposed)
                                     {
@@ -386,7 +428,7 @@ namespace WindowStreamer
                                         sizeWidth.Value = imgWidth;
                                         sizeHeight.Value = imgHeight;
                                     }
-                                }));
+                                });
                             }
                             catch (System.InvalidOperationException)
                             {
@@ -406,8 +448,11 @@ namespace WindowStreamer
                         }
                         timer.Restart();
                     }
-                });
-                workerThread.Priority = ThreadPriority.Lowest;
+                })
+                {
+                    Priority = ThreadPriority.Lowest,
+                    IsBackground = true
+                };
                 workerThread.Start();
                 return true;
             }
@@ -419,10 +464,8 @@ namespace WindowStreamer
             WindowFinder.ReleaseCapture();
 
             var hwnd = WindowFromPoint(System.Windows.Forms.Control.MousePosition);
-            if (hwnd != Handle)
-            {
+            if (FromHandle(hwnd) == null)
                 streamHwnd(hwnd);
-            }
         }
 
         private void sizeWidth_ValueChanged(object sender, EventArgs e)
@@ -457,6 +500,12 @@ namespace WindowStreamer
         {
             hideStreamed = ((CheckBox)sender).Checked;
             updateSize = true;
+        }
+
+        private void serverUrlLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo(((LinkLabel)sender).Text));
+            e.Link.Visited = true;
         }
     }
 }
