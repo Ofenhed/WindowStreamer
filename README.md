@@ -21,5 +21,5 @@ mpv --untimed http://streamserver:8181/ --profile=low-latency
 ## Known issues
 
 * The server runs on port 8181 with no fallback, and admin access is needed to allow users to open these ports (albeit not to actually run the program). It would be better if it used an unprivileged HTTP server.
-* Sometimes the controls don't go away after a window is disconnected. I don't know why this happens.
 * The program continously takes screenshots. It would be better if the program could hook the WM_PAINT message.
+* The background processes don't correctly die, so a ghost process will be running in the background when the program is shut down.

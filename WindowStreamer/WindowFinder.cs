@@ -54,9 +54,10 @@ namespace WindowStreamer
         private Action resetFunction;
         private EncoderParameters encoderParameters;
         private bool updateSize = false;
+        private bool hideStreamed = false;
         private decimal targetFps = 30;
 
-        class Streamer : ApiController
+        class Streamer
         {
             private String boundary;
             private bool die;
@@ -226,10 +227,16 @@ namespace WindowStreamer
             encoderParameters = new EncoderParameters(1);
             var parameter = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)imageQuality.Value);
             encoderParameters.Param[0] = parameter;
-            this.MouseDown += new MouseEventHandler(this.formMouseDown);
-            gotWindowPanel.MouseDown += new MouseEventHandler(this.formMouseDown);
+            var dragHandler = new MouseEventHandler(this.formMouseDown);
+            this.MouseDown += dragHandler;
+            hiddenWindowLabel.MouseDown += dragHandler;
+            visibleWindowLabel.MouseDown += dragHandler;
+            gotWindowPanel.MouseDown += dragHandler;
             this.MouseUp += new MouseEventHandler(this.formMouseUp);
+            this.MouseCaptureChanged += new EventHandler(this.formMouseCaptureAborted);
             httpStreamer = new Streamer("SOME_BOUNDARY_WHICH_IS_NOT_PRESENT_IN_THE_FILE", 8181);
+            noWindowPanel.Dock = DockStyle.Fill;
+            gotWindowPanel.Dock = DockStyle.Fill;
             httpStreamer.Start();
             // this.MouseCaptureChanged += new Mous
 
@@ -245,10 +252,26 @@ namespace WindowStreamer
             base.OnClosed(e);
         }
 
+        public void formMouseCaptureAborted(Object sender, EventArgs e)
+        {
+            Cursor.Current = Cursors.Default;
+        }
+
         public void formMouseDown(Object sender, MouseEventArgs e)
         {
-            if (!gotWindowPanel.Visible)
+            if (noWindowPanel.Visible)
+            {
+                if (sender == visibleWindowLabel)
+                {
+                    hideStreamedCheckbox.Checked = (hideStreamed = false);
+                }
+                else if (sender == hiddenWindowLabel)
+                {
+                    hideStreamedCheckbox.Checked = (hideStreamed = true);
+                }
+                Cursor.Current = Cursors.Cross;
                 WindowFinder.SetCapture(this.Handle);
+            }
         }
 
         public bool doScreenshot(IntPtr hwnd, Bitmap output)
@@ -277,12 +300,13 @@ namespace WindowStreamer
                         {
                             var value = posBefore.Value;
                             MoveWindow(activeWindow, value.Left, value.Top, value.Right - value.Left, value.Bottom - value.Top, false);
-                            if (!IsDisposed)
-                            {
-                                gotWindowPanel.Visible = false;
-                            }
                         }
-                        resetFunction = null;
+                        posBefore = null;
+                        if (!IsDisposed)
+                        {
+                            gotWindowPanel.Visible = false;
+                            noWindowPanel.Visible = true;
+                        }
                     });
 
                     Action doResetFunction = delegate
@@ -308,17 +332,37 @@ namespace WindowStreamer
                         Graphics memoryGraph = Graphics.FromImage(bmp);
 
                         var screen = SystemInformation.VirtualScreen;
+                        var windowPosition = new Point(screen.Width, screen.Height);
+                        if (!hideStreamed)
+                        {
+                            if (updateSize && rect.Left >= screen.Width && rect.Top >= screen.Height && posBefore != null)
+                            {
+                                windowPosition.X = posBefore.Value.Left;
+                                windowPosition.Y = posBefore.Value.Top;
+                            } else
+                            {
+                                windowPosition.X = rect.Left;
+                                windowPosition.Y = rect.Top;
+                            }
+                        }
                         sizeWidth.Maximum = screen.Width;
                         sizeHeight.Maximum = screen.Height;
                         if (posBefore == null)
                         {
                             posBefore = rect;
-                            MoveWindow(activeWindow, screen.Width, screen.Height, (int)sizeWidth.Value, (int)sizeHeight.Value, false);
+                            _ = Invoke((Action)delegate
+                            {
+                                gotWindowPanel.Visible = true;
+                                noWindowPanel.Visible = false;
+                                sizeWidth.Value = bmp.Width;
+                                sizeHeight.Value = bmp.Height;
+                            });
+                            MoveWindow(activeWindow, windowPosition.X, windowPosition.Y, bmp.Width, bmp.Height, false);
                         }
-                        if (updateSize)
+                        else if (updateSize)
                         {
                             updateSize = false;
-                            MoveWindow(activeWindow, screen.Width, screen.Height, (int)sizeWidth.Value, (int)sizeHeight.Value, false);
+                            MoveWindow(activeWindow, windowPosition.X, windowPosition.Y, (int)sizeWidth.Value, (int)sizeHeight.Value, false);
                             continue;
                         }
                         var ptr = memoryGraph.GetHdc();
@@ -342,7 +386,6 @@ namespace WindowStreamer
                                         sizeWidth.Value = imgWidth;
                                         sizeHeight.Value = imgHeight;
                                     }
-                                    gotWindowPanel.Visible = true;
                                 }));
                             }
                             catch (System.InvalidOperationException)
@@ -408,6 +451,12 @@ namespace WindowStreamer
             var parameter = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality,
                 (long)((NumericUpDown)sender).Value);
             encoderParameters.Param[0] = parameter;
+        }
+
+        private void hideStreamedCheckbox_CheckedChanged(object sender, EventArgs e)
+        {
+            hideStreamed = ((CheckBox)sender).Checked;
+            updateSize = true;
         }
     }
 }
