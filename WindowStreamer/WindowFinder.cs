@@ -65,6 +65,7 @@ namespace WindowStreamer
             private int port;
 
             private BroadcastBlock<Lazy<byte[]>> currentImageEncoded;
+            private Bitmap currentImage;
             private Thread serverThread = null;
             private HttpListener host;
             private ImageCodecInfo imageCodecInfo;
@@ -181,23 +182,26 @@ namespace WindowStreamer
                 writeString(stream, "\r\n");
             }
 
-            public void SetCurrentImage(Bitmap image, EncoderParameters encoderParameters)
+            private byte[] encodeImage(EncoderParameters encoderParameters)
             {
-                currentImageEncoded.SendAsync(new Lazy<byte[]>(() =>
+                using (MemoryStream ms = new MemoryStream())
                 {
-                    using (MemoryStream ms = new MemoryStream())
-                    {
-                        image.Save(ms, imageCodecInfo, encoderParameters);
-                        image.Dispose();
-                        return ms.ToArray();
-                    }
-                }, true));
+                    var myImage = Interlocked.Exchange(ref currentImage, null);
+                    if (myImage == null)
+                        return null;
+                    myImage.Save(ms, imageCodecInfo, encoderParameters);
+                    myImage.Dispose();
+                    return ms.ToArray();
+                }
             }
 
-            private byte[] getCurrentImage()
+            public void SetCurrentImage(Bitmap image, EncoderParameters encoderParameters)
             {
-                var received = currentImageEncoded.Receive();
-                return received.Value;
+                var lastImage = Interlocked.Exchange(ref currentImage, image);
+                if (lastImage != null)
+                    lastImage.Dispose();
+
+                currentImageEncoded.SendAsync(new Lazy<byte[]>(() => encodeImage(encoderParameters)));
             }
 
             class BroadcastObserver<T> : System.IObserver<T>
@@ -234,11 +238,14 @@ namespace WindowStreamer
                 {
                     try
                     {
-                        var value = imageData.Value;
-                        writeHeader(stream, value.Length);
-                        stream.Write(value, 0, value.Length);
-                        writeFooter(stream);
-                        stream.Flush();
+                        if (imageData.Value != null)
+                        {
+                            var value = imageData.Value;
+                            writeHeader(stream, value.Length);
+                            stream.Write(value, 0, value.Length);
+                            writeFooter(stream);
+                            stream.Flush();
+                        }
                     }
                     catch (HttpListenerException) { }
                     catch (ProtocolViolationException)
@@ -315,14 +322,6 @@ namespace WindowStreamer
             }
         }
 
-        public bool doScreenshot(IntPtr hwnd, Bitmap output)
-        {
-            var memoryGraph = Graphics.FromImage(output);
-            var ptr = memoryGraph.GetHdc();
-            memoryGraph.ReleaseHdc();
-            return false;
-        }
-
         public bool streamHwnd(IntPtr hwnd)
         {
             activeWindow = hwnd;
@@ -370,7 +369,6 @@ namespace WindowStreamer
                             break;
                         }
                         Bitmap bmp = new Bitmap(rect.Right - rect.Left, rect.Bottom - rect.Top);
-                        Graphics memoryGraph = Graphics.FromImage(bmp);
 
                         var screen = SystemInformation.VirtualScreen;
                         var windowPosition = new Point(screen.Width, screen.Height);
@@ -407,9 +405,13 @@ namespace WindowStreamer
                             MoveWindow(activeWindow, windowPosition.X, windowPosition.Y, (int)sizeWidth.Value, (int)sizeHeight.Value, false);
                             continue;
                         }
-                        var ptr = memoryGraph.GetHdc();
-                        var printed = PrintWindow(activeWindow, ptr, 0);
-                        memoryGraph.ReleaseHdc();
+                        var printed = false;
+                        using (Graphics memoryGraph = Graphics.FromImage(bmp))
+                        {
+                            var ptr = memoryGraph.GetHdc();
+                            printed = PrintWindow(activeWindow, ptr, 0);
+                            memoryGraph.ReleaseHdc();
+                        }
                         if (printed)
                         {
                             var imgWidth = bmp.Width;
