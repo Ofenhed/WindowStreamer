@@ -112,7 +112,7 @@ namespace WindowStreamer
                             break;
                         } catch
                         {
-                            host.Prefixes.Clear();
+                            host = new HttpListener();
                             ++stream_num;
                         }
                     }
