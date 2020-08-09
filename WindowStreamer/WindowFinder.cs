@@ -325,8 +325,14 @@ namespace WindowStreamer
         public bool streamHwnd(IntPtr hwnd)
         {
             activeWindow = hwnd;
-            var hwnd2 = GetParent(activeWindow);
-            if (hwnd2 != IntPtr.Zero) { activeWindow = hwnd2; }
+            while (true)
+            {
+                var hwnd2 = GetParent(activeWindow);
+                if (hwnd2 == IntPtr.Zero)
+                    break;
+                activeWindow = hwnd2;
+            }
+
             if (activeWindow != IntPtr.Zero)
             {
                 workerThread = new Thread(delegate ()
