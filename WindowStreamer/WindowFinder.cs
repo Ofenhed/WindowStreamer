@@ -32,12 +32,38 @@ namespace WindowStreamer
         [return: MarshalAs(UnmanagedType.Bool)]
         static extern bool PrintWindow(IntPtr hwnd, IntPtr hDC, uint nFlags);
 
+        [DllImport("gdi32.dll", EntryPoint = "BitBlt", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool BitBlt([In] IntPtr hdc, int nXDest, int nYDest, int nWidth, int nHeight, [In] IntPtr hdcSrc, int nXSrc, int nYSrc, int dwRop);
+
+        [DllImport("gdi32.dll")]
+        static extern IntPtr CreateCompatibleBitmap(IntPtr hdc, int nWidth, int nHeight);
+
+        [DllImport("user32.dll")]
+        static extern IntPtr GetDC(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        static extern bool ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        static extern IntPtr CreateCompatibleDC(IntPtr hdc);
+
+        [DllImport("gdi32.dll", EntryPoint = "SelectObject")]
+        public static extern IntPtr SelectObject(IntPtr hdc, IntPtr hgdiobj);
+
+        [DllImport("gdi32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool DeleteObject(IntPtr hObject);
+
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
         [DllImport("user32.dll", SetLastError = true)]
-        internal static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
+        static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+        public const int HWND_NOTOPMOST = -2;
+        public const uint SWP_NOREDRAW = 0x8;
+        public const uint SWP_NOACTIVE = 0x10;
 
         [StructLayout(LayoutKind.Sequential)]
         public struct RECT
@@ -385,7 +411,7 @@ namespace WindowStreamer
                             var newStyle = new IntPtr(styleBefore.ToInt64() & ~WS_EX_TOOLWINDOW);
                             SetWindowLongPtr(activeWindow, GWL_EXSTYLE, newStyle);
 
-                            MoveWindow(activeWindow, value.Left, value.Top, value.Right - value.Left, value.Bottom - value.Top, false);
+                            SetWindowPos(activeWindow, new IntPtr(HWND_NOTOPMOST), value.Left, value.Top, value.Right - value.Left, value.Bottom - value.Top, SWP_NOACTIVE | SWP_NOREDRAW);
                         }
                         posBefore = null;
                         if (!IsDisposed)
@@ -414,7 +440,7 @@ namespace WindowStreamer
                             doResetFunction();
                             break;
                         }
-                        Bitmap bmp = new Bitmap(rect.Right - rect.Left, rect.Bottom - rect.Top);
+                        var windowSize = new Size(rect.Right - rect.Left, rect.Bottom - rect.Top);
 
                         var screen = SystemInformation.VirtualScreen;
                         var windowPosition = new Point(screen.Width, screen.Height);
@@ -440,13 +466,13 @@ namespace WindowStreamer
                             {
                                 gotWindowPanel.Visible = true;
                                 noWindowPanel.Visible = false;
-                                sizeWidth.Value = bmp.Width;
-                                sizeHeight.Value = bmp.Height;
+                                sizeWidth.Value = windowSize.Width;
+                                sizeHeight.Value = windowSize.Height;
                             });
                             var styleBefore = GetWindowLongPtr(activeWindow, GWL_EXSTYLE);
                             var newStyle = new IntPtr(hideStreamed ? styleBefore.ToInt64() | WS_EX_TOOLWINDOW : styleBefore.ToInt64() & ~WS_EX_TOOLWINDOW);
                             SetWindowLongPtr(activeWindow, GWL_EXSTYLE, newStyle);
-                            MoveWindow(activeWindow, windowPosition.X, windowPosition.Y, bmp.Width, bmp.Height, false);
+                            SetWindowPos(activeWindow, new IntPtr(HWND_NOTOPMOST), windowPosition.X, windowPosition.Y, windowSize.Width, windowSize.Height, SWP_NOACTIVE);
                         }
                         else if (updateSize)
                         {
@@ -454,21 +480,46 @@ namespace WindowStreamer
                             var styleBefore = GetWindowLongPtr(activeWindow, GWL_EXSTYLE);
                             var newStyle = new IntPtr(hideStreamed ? styleBefore.ToInt64() | WS_EX_TOOLWINDOW : styleBefore.ToInt64() & ~WS_EX_TOOLWINDOW);
                             SetWindowLongPtr(activeWindow, GWL_EXSTYLE, newStyle);
-                            MoveWindow(activeWindow, windowPosition.X, windowPosition.Y, (int)sizeWidth.Value, (int)sizeHeight.Value, false);
-                            bmp.Dispose();
+                            SetWindowPos(activeWindow, new IntPtr(HWND_NOTOPMOST), windowPosition.X, windowPosition.Y, (int)sizeWidth.Value, (int)sizeHeight.Value, SWP_NOACTIVE);
                             continue;
                         }
                         var printed = false;
-                        using (Graphics memoryGraph = Graphics.FromImage(bmp))
+                        Bitmap bmp;
+                        // using (Graphics memoryGraph = Graphics.FromImage(bmp))
+                        // {
+                        if (!hideStreamed)
                         {
-                            var ptr = memoryGraph.GetHdc();
-                            printed = PrintWindow(activeWindow, ptr, 0);
-                            memoryGraph.ReleaseHdc();
+                            IntPtr hDCMem;
+                            IntPtr hOld;
+                            IntPtr hBmp;
+                            {
+                                var hDC = GetDC(activeWindow);
+                                hDCMem = CreateCompatibleDC(hDC);
+                                hBmp = CreateCompatibleBitmap(hDC, windowSize.Width, windowSize.Height);
+                                hOld = SelectObject(hDCMem, hBmp);
+                                BitBlt(hDCMem, 0, 0, windowSize.Width, windowSize.Height, hDC, 0, 0, 0xcc0020);
+                                ReleaseDC(activeWindow, hDC);
+                            }
+                            SelectObject(hDCMem, hOld);
+                            DeleteObject(hDCMem);
+                            bmp = Image.FromHbitmap(hBmp);
+                            DeleteObject(hBmp);
+                            printed = true;
+                        }
+                        else
+                        {
+                            bmp = new Bitmap(windowSize.Width, windowSize.Height);
+                            using (Graphics memoryGraph = Graphics.FromImage(bmp))
+                            {
+                                var ptr = memoryGraph.GetHdc();
+                                printed = PrintWindow(activeWindow, ptr, 0);
+                                memoryGraph.ReleaseHdc();
+                            }
                         }
                         if (printed)
                         {
-                            var imgWidth = bmp.Width;
-                            var imgHeight = bmp.Height;
+                            var imgWidth = windowSize.Width;
+                            var imgHeight = windowSize.Height;
                             httpStreamer.SetCurrentImage(bmp, encoderParameters);
                             try
                             {
@@ -482,6 +533,7 @@ namespace WindowStreamer
                                     {
                                         sizeWidth.Value = imgWidth;
                                         sizeHeight.Value = imgHeight;
+                                        updateSize = false;
                                     }
                                 });
                             }
