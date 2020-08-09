@@ -8,7 +8,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks.Dataflow;
-using System.Web.Http;
 using System.Windows.Forms;
 
 namespace WindowStreamer
@@ -111,7 +110,8 @@ namespace WindowStreamer
                             url.Host = "127.0.0.1";
                             callback(url.Uri);
                             break;
-                        } catch
+                        }
+                        catch
                         {
                             host = new HttpListener();
                             ++stream_num;
