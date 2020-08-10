@@ -62,8 +62,13 @@ namespace WindowStreamer
         [DllImport("user32.dll", SetLastError = true)]
         static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
         public const int HWND_NOTOPMOST = -2;
+        public const int HWND_TOPMOST = -1;
+        public const int HWND_BOTTOM = 1;
         public const uint SWP_NOREDRAW = 0x8;
         public const uint SWP_NOACTIVE = 0x10;
+        public const uint SWP_NOMOVE = 0x2;
+        public const uint SWP_NOSIZE = 0x1;
+        public const uint SWP_NOZORDER = 0x4;
 
         [StructLayout(LayoutKind.Sequential)]
         public struct RECT
@@ -82,42 +87,6 @@ namespace WindowStreamer
         private bool updateSize = false;
         private bool hideStreamed = false;
         private decimal targetFps = 30;
-
-        // This helper static method is required because the 32-bit version of user32.dll does not contain this API
-        // (on any versions of Windows), so linking the method will fail at run-time. The bridge dispatches the request
-        // to the correct function (GetWindowLong in 32-bit mode and GetWindowLongPtr in 64-bit mode)
-        public static IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong)
-        {
-            if (IntPtr.Size == 8)
-                return SetWindowLongPtr64(hWnd, nIndex, dwNewLong);
-            else
-                return new IntPtr(SetWindowLong32(hWnd, nIndex, dwNewLong.ToInt32()));
-        }
-
-        [DllImport("user32.dll", EntryPoint = "SetWindowLong")]
-        private static extern int SetWindowLong32(IntPtr hWnd, int nIndex, int dwNewLong);
-
-        [DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")]
-        private static extern IntPtr SetWindowLongPtr64(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
-
-        [DllImport("user32.dll", EntryPoint = "GetWindowLong")]
-        private static extern IntPtr GetWindowLongPtr32(IntPtr hWnd, int nIndex);
-
-        [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
-        private static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
-
-        // This static method is required because Win32 does not support
-        // GetWindowLongPtr directly
-        public static IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex)
-        {
-            if (IntPtr.Size == 8)
-                return GetWindowLongPtr64(hWnd, nIndex);
-            else
-                return GetWindowLongPtr32(hWnd, nIndex);
-        }
-
-        const int GWL_EXSTYLE = -20;
-        const long WS_EX_TOOLWINDOW = 0x80L;
 
         class Streamer
         {
@@ -252,18 +221,25 @@ namespace WindowStreamer
                     if (myImage == null)
                         return null;
                     myImage.Save(ms, imageCodecInfo, encoderParameters);
-                    myImage.Dispose();
+                    var maybeNewImage = Interlocked.Exchange(ref currentImage, myImage);
+                    // This tries to recycle the old bitmap. If a new bitmap has
+                    // already been placed we'll simply drop it, since the 
+                    // alternative is ta draw that frame instead, but that
+                    // may lead to starvation, since the producer may be
+                    // faster than the consumer every frame.
+                    if (maybeNewImage != null)
+                        maybeNewImage.Dispose();
                     return ms.ToArray();
                 }
             }
 
-            public void SetCurrentImage(Bitmap image, EncoderParameters encoderParameters)
+            public Bitmap SetCurrentImage(Bitmap image, EncoderParameters encoderParameters)
             {
                 var lastImage = Interlocked.Exchange(ref currentImage, image);
-                if (lastImage != null)
-                    lastImage.Dispose();
 
                 currentImageEncoded.SendAsync(new Lazy<byte[]>(() => encodeImage(encoderParameters)));
+
+                return lastImage;
             }
 
             class BroadcastObserver<T> : System.IObserver<T>
@@ -407,11 +383,8 @@ namespace WindowStreamer
                         if (posBefore.HasValue)
                         {
                             var value = posBefore.Value;
-                            var styleBefore = GetWindowLongPtr(activeWindow, GWL_EXSTYLE);
-                            var newStyle = new IntPtr(styleBefore.ToInt64() & ~WS_EX_TOOLWINDOW);
-                            SetWindowLongPtr(activeWindow, GWL_EXSTYLE, newStyle);
 
-                            SetWindowPos(activeWindow, new IntPtr(HWND_NOTOPMOST), value.Left, value.Top, value.Right - value.Left, value.Bottom - value.Top, SWP_NOACTIVE | SWP_NOREDRAW);
+                            SetWindowPos(activeWindow, IntPtr.Zero, value.Left, value.Top, value.Right - value.Left, value.Bottom - value.Top, SWP_NOACTIVE | SWP_NOREDRAW | SWP_NOZORDER);
                         }
                         posBefore = null;
                         if (!IsDisposed)
@@ -431,6 +404,7 @@ namespace WindowStreamer
 
                     var timer = new System.Diagnostics.Stopwatch();
                     timer.Start();
+                    Bitmap recycledBitmap = null;
                     while (true)
                     {
                         var rect = new RECT();
@@ -453,8 +427,12 @@ namespace WindowStreamer
                             }
                             else
                             {
-                                windowPosition.X = rect.Left;
-                                windowPosition.Y = rect.Top;
+                                windowPosition.X = Math.Max(0, Math.Min(screen.Width - windowSize.Width, rect.Left));
+                                windowPosition.Y = Math.Max(0, Math.Min(screen.Height - windowSize.Height, rect.Top));
+                                if (windowPosition.X != rect.Left || windowPosition.Y != rect.Top)
+                                {
+                                    updateSize = true;
+                                }
                             }
                         }
                         sizeWidth.Maximum = screen.Width * 10;
@@ -469,47 +447,34 @@ namespace WindowStreamer
                                 sizeWidth.Value = windowSize.Width;
                                 sizeHeight.Value = windowSize.Height;
                             });
-                            var styleBefore = GetWindowLongPtr(activeWindow, GWL_EXSTYLE);
-                            var newStyle = new IntPtr(hideStreamed ? styleBefore.ToInt64() | WS_EX_TOOLWINDOW : styleBefore.ToInt64() & ~WS_EX_TOOLWINDOW);
-                            SetWindowLongPtr(activeWindow, GWL_EXSTYLE, newStyle);
-                            SetWindowPos(activeWindow, new IntPtr(HWND_NOTOPMOST), windowPosition.X, windowPosition.Y, windowSize.Width, windowSize.Height, SWP_NOACTIVE);
+                            SetWindowPos(activeWindow, IntPtr.Zero, windowPosition.X, windowPosition.Y, windowSize.Width, windowSize.Height, SWP_NOACTIVE | SWP_NOZORDER);
                         }
                         else if (updateSize)
                         {
                             updateSize = false;
-                            var styleBefore = GetWindowLongPtr(activeWindow, GWL_EXSTYLE);
-                            var newStyle = new IntPtr(hideStreamed ? styleBefore.ToInt64() | WS_EX_TOOLWINDOW : styleBefore.ToInt64() & ~WS_EX_TOOLWINDOW);
-                            SetWindowLongPtr(activeWindow, GWL_EXSTYLE, newStyle);
-                            SetWindowPos(activeWindow, new IntPtr(HWND_NOTOPMOST), windowPosition.X, windowPosition.Y, (int)sizeWidth.Value, (int)sizeHeight.Value, SWP_NOACTIVE);
+                            SetWindowPos(activeWindow, IntPtr.Zero, windowPosition.X, windowPosition.Y, (int)sizeWidth.Value, (int)sizeHeight.Value, SWP_NOACTIVE | SWP_NOZORDER);
                             continue;
                         }
                         var printed = false;
-                        Bitmap bmp;
-                        // using (Graphics memoryGraph = Graphics.FromImage(bmp))
-                        // {
-                        if (!hideStreamed)
+                        Bitmap bmp = recycledBitmap;
+                        recycledBitmap = null;
+                        if (bmp == null || !(bmp.Width == windowSize.Width && bmp.Height == windowSize.Height)) 
                         {
-                            IntPtr hDCMem;
-                            IntPtr hOld;
-                            IntPtr hBmp;
+                            if (bmp != null)
+                                bmp.Dispose();
+                            bmp = new Bitmap(windowSize.Width, windowSize.Height);
+                        }
+                        using (Graphics memoryGraph = Graphics.FromImage(bmp))
+                        {
+                            if (!hideStreamed)
                             {
                                 var hDC = GetDC(activeWindow);
-                                hDCMem = CreateCompatibleDC(hDC);
-                                hBmp = CreateCompatibleBitmap(hDC, windowSize.Width, windowSize.Height);
-                                hOld = SelectObject(hDCMem, hBmp);
-                                BitBlt(hDCMem, 0, 0, windowSize.Width, windowSize.Height, hDC, 0, 0, 0xcc0020);
+                                var hBmp = memoryGraph.GetHdc();
+                                printed = BitBlt(hBmp, 0, 0, windowSize.Width, windowSize.Height, hDC, 0, 0, 0xcc0020);
                                 ReleaseDC(activeWindow, hDC);
+                                memoryGraph.ReleaseHdc();
                             }
-                            SelectObject(hDCMem, hOld);
-                            DeleteObject(hDCMem);
-                            bmp = Image.FromHbitmap(hBmp);
-                            DeleteObject(hBmp);
-                            printed = true;
-                        }
-                        else
-                        {
-                            bmp = new Bitmap(windowSize.Width, windowSize.Height);
-                            using (Graphics memoryGraph = Graphics.FromImage(bmp))
+                            else
                             {
                                 var ptr = memoryGraph.GetHdc();
                                 printed = PrintWindow(activeWindow, ptr, 0);
@@ -520,7 +485,7 @@ namespace WindowStreamer
                         {
                             var imgWidth = windowSize.Width;
                             var imgHeight = windowSize.Height;
-                            httpStreamer.SetCurrentImage(bmp, encoderParameters);
+                            recycledBitmap = httpStreamer.SetCurrentImage(bmp, encoderParameters);
                             try
                             {
                                 _ = Invoke((Action)delegate
@@ -544,6 +509,7 @@ namespace WindowStreamer
                         }
                         else
                         {
+                            bmp.Dispose();
                             doResetFunction();
                             break;
                         }
@@ -605,7 +571,7 @@ namespace WindowStreamer
 
         private void hideStreamedCheckbox_CheckedChanged(object sender, EventArgs e)
         {
-            hideStreamed = ((CheckBox)sender).Checked;
+            sendToBottomButton.Enabled = !(hideStreamed = ((CheckBox)sender).Checked);
             updateSize = true;
         }
 
@@ -613,6 +579,11 @@ namespace WindowStreamer
         {
             Process.Start(new ProcessStartInfo(((LinkLabel)sender).Text));
             e.Link.Visited = true;
+        }
+
+        private void sendToBottomButton_Click(object sender, EventArgs e)
+        {
+            SetWindowPos(activeWindow, new IntPtr(HWND_BOTTOM), 0, 0, 0, 0, SWP_NOACTIVE | SWP_NOMOVE | SWP_NOSIZE);
         }
     }
 }
