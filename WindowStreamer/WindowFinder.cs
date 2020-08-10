@@ -88,6 +88,42 @@ namespace WindowStreamer
         private bool hideStreamed = false;
         private decimal targetFps = 30;
 
+        // This helper static method is required because the 32-bit version of user32.dll does not contain this API
+        // (on any versions of Windows), so linking the method will fail at run-time. The bridge dispatches the request
+        // to the correct function (GetWindowLong in 32-bit mode and GetWindowLongPtr in 64-bit mode)
+        public static IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong)
+        {
+            if (IntPtr.Size == 8)
+                return SetWindowLongPtr64(hWnd, nIndex, dwNewLong);
+            else
+                return new IntPtr(SetWindowLong32(hWnd, nIndex, dwNewLong.ToInt32()));
+        }
+
+        [DllImport("user32.dll", EntryPoint = "SetWindowLong")]
+        private static extern int SetWindowLong32(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        [DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")]
+        private static extern IntPtr SetWindowLongPtr64(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+        [DllImport("user32.dll", EntryPoint = "GetWindowLong")]
+        private static extern IntPtr GetWindowLongPtr32(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
+        private static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
+
+        // This static method is required because Win32 does not support
+        // GetWindowLongPtr directly
+        public static IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex)
+        {
+            if (IntPtr.Size == 8)
+                return GetWindowLongPtr64(hWnd, nIndex);
+            else
+                return GetWindowLongPtr32(hWnd, nIndex);
+        }
+
+        const int GWL_EXSTYLE = -20;
+        const long WS_EX_TOOLWINDOW = 0x80L;
+
         class Streamer
         {
             private String boundary;
@@ -383,6 +419,9 @@ namespace WindowStreamer
                         if (posBefore.HasValue)
                         {
                             var value = posBefore.Value;
+                            var styleBefore = GetWindowLongPtr(activeWindow, GWL_EXSTYLE);
+                            var newStyle = new IntPtr(styleBefore.ToInt64() & ~WS_EX_TOOLWINDOW);
+                            SetWindowLongPtr(activeWindow, GWL_EXSTYLE, newStyle);
 
                             SetWindowPos(activeWindow, IntPtr.Zero, value.Left, value.Top, value.Right - value.Left, value.Bottom - value.Top, SWP_NOACTIVE | SWP_NOREDRAW | SWP_NOZORDER);
                         }
@@ -447,11 +486,17 @@ namespace WindowStreamer
                                 sizeWidth.Value = windowSize.Width;
                                 sizeHeight.Value = windowSize.Height;
                             });
+                            var styleBefore = GetWindowLongPtr(activeWindow, GWL_EXSTYLE);
+                            var newStyle = new IntPtr(hideStreamed ? styleBefore.ToInt64() | WS_EX_TOOLWINDOW : styleBefore.ToInt64() & ~WS_EX_TOOLWINDOW);
+                            SetWindowLongPtr(activeWindow, GWL_EXSTYLE, newStyle);
                             SetWindowPos(activeWindow, IntPtr.Zero, windowPosition.X, windowPosition.Y, windowSize.Width, windowSize.Height, SWP_NOACTIVE | SWP_NOZORDER);
                         }
                         else if (updateSize)
                         {
                             updateSize = false;
+                            var styleBefore = GetWindowLongPtr(activeWindow, GWL_EXSTYLE);
+                            var newStyle = new IntPtr(hideStreamed ? styleBefore.ToInt64() | WS_EX_TOOLWINDOW : styleBefore.ToInt64() & ~WS_EX_TOOLWINDOW);
+                            SetWindowLongPtr(activeWindow, GWL_EXSTYLE, newStyle);
                             SetWindowPos(activeWindow, IntPtr.Zero, windowPosition.X, windowPosition.Y, (int)sizeWidth.Value, (int)sizeHeight.Value, SWP_NOACTIVE | SWP_NOZORDER);
                             continue;
                         }
