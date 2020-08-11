@@ -32,6 +32,7 @@ namespace WindowStreamer
     /// </summary>
     private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(WindowFinder));
             this.hideStreamedCheckbox = new System.Windows.Forms.CheckBox();
             this.imageQuality = new System.Windows.Forms.NumericUpDown();
             this.stopStreaming = new System.Windows.Forms.Button();
@@ -225,7 +226,7 @@ namespace WindowStreamer
             this.gotWindowPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.gotWindowPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.gotWindowPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.gotWindowPanel.Size = new System.Drawing.Size(240, 143);
+            this.gotWindowPanel.Size = new System.Drawing.Size(237, 143);
             this.gotWindowPanel.TabIndex = 5;
             // 
             // flowLayoutPanel1
@@ -333,6 +334,7 @@ namespace WindowStreamer
             this.Controls.Add(this.noWindowPanel);
             this.Controls.Add(this.gotWindowPanel);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.Name = "WindowFinder";
             this.Text = "WindowStreamer";

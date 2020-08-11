@@ -22,3 +22,7 @@ mpv --untimed http://streamserver:8181/stream/0/ --profile=low-latency
 
 * The server needs admin access to allow users to open these ports (albeit not to actually run the program). It would be better if it used an unprivileged HTTP server. A plus with the current method is that multiple programs can be run without separate ports.
 * The program continously takes screenshots. It would be better to detect when a program is changed, but I have not found a method of detecting this.
+
+## Attribution
+
+Program icon made by [Freepik](https://www.flaticon.com/authors/freepik) from [Flaticon](https://www.flaticon.com/).
