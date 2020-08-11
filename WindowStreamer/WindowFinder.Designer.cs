@@ -79,7 +79,7 @@ namespace WindowStreamer
             0,
             0,
             0});
-            this.imageQuality.Location = new System.Drawing.Point(81, 74);
+            this.imageQuality.Location = new System.Drawing.Point(80, 74);
             this.imageQuality.Minimum = new decimal(new int[] {
             1,
             0,
@@ -110,7 +110,7 @@ namespace WindowStreamer
             // targetFpsEntry
             // 
             this.targetFpsEntry.DecimalPlaces = 1;
-            this.targetFpsEntry.Location = new System.Drawing.Point(81, 48);
+            this.targetFpsEntry.Location = new System.Drawing.Point(80, 48);
             this.targetFpsEntry.Maximum = new decimal(new int[] {
             60,
             0,
@@ -225,7 +225,7 @@ namespace WindowStreamer
             this.gotWindowPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.gotWindowPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.gotWindowPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.gotWindowPanel.Size = new System.Drawing.Size(243, 143);
+            this.gotWindowPanel.Size = new System.Drawing.Size(240, 143);
             this.gotWindowPanel.TabIndex = 5;
             // 
             // flowLayoutPanel1
@@ -234,7 +234,7 @@ namespace WindowStreamer
             this.flowLayoutPanel1.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.flowLayoutPanel1.Controls.Add(this.sizeWidth);
             this.flowLayoutPanel1.Controls.Add(this.sizeHeight);
-            this.flowLayoutPanel1.Location = new System.Drawing.Point(81, 16);
+            this.flowLayoutPanel1.Location = new System.Drawing.Point(80, 16);
             this.flowLayoutPanel1.Name = "flowLayoutPanel1";
             this.flowLayoutPanel1.Size = new System.Drawing.Size(140, 26);
             this.flowLayoutPanel1.TabIndex = 5;
@@ -260,7 +260,7 @@ namespace WindowStreamer
             // serverUrlLabel
             // 
             this.serverUrlLabel.AutoSize = true;
-            this.serverUrlLabel.Location = new System.Drawing.Point(81, 0);
+            this.serverUrlLabel.Location = new System.Drawing.Point(80, 0);
             this.serverUrlLabel.Name = "serverUrlLabel";
             this.serverUrlLabel.Size = new System.Drawing.Size(16, 13);
             this.serverUrlLabel.TabIndex = 1;
@@ -274,7 +274,7 @@ namespace WindowStreamer
             this.flowLayoutPanel2.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.flowLayoutPanel2.Controls.Add(this.hideStreamedCheckbox);
             this.flowLayoutPanel2.Controls.Add(this.stopStreaming);
-            this.flowLayoutPanel2.Location = new System.Drawing.Point(81, 100);
+            this.flowLayoutPanel2.Location = new System.Drawing.Point(80, 100);
             this.flowLayoutPanel2.Name = "flowLayoutPanel2";
             this.flowLayoutPanel2.Size = new System.Drawing.Size(138, 29);
             this.flowLayoutPanel2.TabIndex = 11;
@@ -283,7 +283,7 @@ namespace WindowStreamer
             // 
             this.sendToBottomButton.Location = new System.Drawing.Point(3, 100);
             this.sendToBottomButton.Name = "sendToBottomButton";
-            this.sendToBottomButton.Size = new System.Drawing.Size(72, 23);
+            this.sendToBottomButton.Size = new System.Drawing.Size(71, 23);
             this.sendToBottomButton.TabIndex = 12;
             this.sendToBottomButton.Text = "Cover";
             this.sendToBottomButton.UseVisualStyleBackColor = true;
@@ -329,9 +329,10 @@ namespace WindowStreamer
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(237, 145);
+            this.ClientSize = new System.Drawing.Size(254, 145);
             this.Controls.Add(this.noWindowPanel);
             this.Controls.Add(this.gotWindowPanel);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.Name = "WindowFinder";
             this.Text = "WindowStreamer";

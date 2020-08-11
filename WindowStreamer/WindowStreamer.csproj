@@ -96,6 +96,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="MjpegStreamer.cs" />
+    <Compile Include="Win32.cs" />
     <Compile Include="WindowFinder.cs">
       <SubType>Form</SubType>
     </Compile>
